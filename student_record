@@ -1,0 +1,38 @@
+[
+  {
+    "first_name": "John",
+    "last_name": "McKenna",
+    "mobile": 9364356232,
+    "email": "abc@xyz.com",
+    "dob": "23/11/2011",
+    "address": {
+      "building": "#53 Building A",
+      "street": "great street",
+      "pin": "700234"
+    }
+  },
+  {
+    "first_name": "Marry",
+    "last_name": "patel",
+    "mobile": 9087654334,
+    "email": "something@xyz.com",
+    "dob": "07/01/2025",
+    "address": {
+      "building": "#53 Building A",
+      "street": "shell company",
+      "pin": "700234"
+    }
+  },
+  {
+    "first_name": "abhishek",
+    "last_name": "patel",
+    "mobile": 9087654334,
+    "email": "something@xyz.com",
+    "dob": "07/01/2025",
+    "address": {
+      "building": "#53 Building A",
+      "street": "shell company",
+      "pin": "700234"
+    }
+  }
+]
