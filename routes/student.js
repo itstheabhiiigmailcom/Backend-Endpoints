@@ -22,10 +22,11 @@ const appRouter = Router();
 //     }
 // })
 
-appRouter.post('/student', addStudent);
-appRouter.get('/student', getAllStudents);
-appRouter.get('/student/:email', getStudentByEmail);
-appRouter.put('/student/:email', updateStudentByEmail);
-appRouter.delete('/student/:email', deleteStudentByEmail);
+// CRUD operations
+appRouter.post('/student', addStudent);     // create
+appRouter.get('/student', getAllStudents);      // read
+appRouter.get('/student/:email', getStudentByEmail);    // read
+appRouter.put('/student/:email', updateStudentByEmail);     // update
+appRouter.delete('/student/:email', deleteStudentByEmail);  // delete
 
 export default appRouter;
