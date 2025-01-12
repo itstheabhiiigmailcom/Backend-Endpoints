@@ -1,5 +1,6 @@
 import { Router } from "express";
-import { addStudent, deleteStudentByEmail, getAllStudents, getStudentByEmail, updateStudentByEmail } from "../controllers/student.controller.js";
+import { addStudent, deleteStudentById, getAllStudents, getStudentById, updateStudentById } from "../controllers/student.controller.js";
+import { validateStudent } from "../middlewares/student.middleware.js";
 
 const appRouter = Router();
 
@@ -22,11 +23,12 @@ const appRouter = Router();
 //     }
 // })
 
+
 // CRUD operations
-appRouter.post('/student', addStudent);     // create
-appRouter.get('/student', getAllStudents);      // read
-appRouter.get('/student/:email', getStudentByEmail);    // read
-appRouter.put('/student/:email', updateStudentByEmail);     // update
-appRouter.delete('/student/:email', deleteStudentByEmail);  // delete
+appRouter.post('/student', validateStudent, addStudent);     // create and validate before add
+appRouter.get('/student',  getAllStudents);      // read all
+appRouter.get('/student/:student_id', getStudentById);    // read
+appRouter.put('/student/:student_id', updateStudentById);     // update
+appRouter.delete('/student/:student_id', deleteStudentById);  // delete
 
 export default appRouter;

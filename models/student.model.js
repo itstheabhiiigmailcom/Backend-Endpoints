@@ -18,6 +18,11 @@ const addressSchema = new mongoose.Schema(
 )
 const studentSchema = new mongoose.Schema(
     {
+        student_id: {
+            type: String,
+            required: true,
+            unique: true,
+        },
         first_name: {
             type: String,
             required: true,
@@ -31,7 +36,6 @@ const studentSchema = new mongoose.Schema(
         mobile: {
             type: String,
             required: true,
-            unique: true
         },
         email: {
             type: String,

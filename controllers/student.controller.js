@@ -1,52 +1,5 @@
-// import fs from 'fs';
 import { Student } from "../models/student.model.js";
-
-// const filePath = "./student_record";
-
-// function addStudent(data) {
-//     try {
-//         // Check if the file exists
-//         if (!fs.existsSync(filePath)) {
-//             const initialData = [data];
-//             fs.writeFileSync(filePath, JSON.stringify(initialData, null, 2), "utf-8");
-//         } else {
-//             // If the file exists, read the old data
-//             const fileContent = fs.readFileSync(filePath, "utf-8").trim();
-//             let students = [];
-
-//             if (fileContent) {
-//                 try {
-//                     students = JSON.parse(fileContent);
-//                 } catch (error) {
-//                     console.error("Invalid JSON in file. Overwriting the file.");
-//                     students = [];
-//                 }
-//             }
-
-//             // Append the new student data to the array
-//             students.push(data);
-
-//             // Write the updated array back to the file
-//             fs.writeFileSync(filePath, JSON.stringify(students, null, 2), "utf-8");
-//         }
-//     } catch (error) {
-//         console.error("Error writing to file:", error.message);
-//         throw error;
-//     }
-// }
-
-// function getStudent() {
-//     try {
-//         if (!fs.existsSync(filePath)) {
-//             return { message: "No student data found!" };
-//         }
-//         const data = fs.readFileSync(filePath, "utf-8");
-//         return JSON.parse(data);
-//     } catch (error) {
-//         console.error("Error reading from file:", error.message);
-//         throw error;
-//     }
-// }
+import { v4 as uuidv4 } from "uuid";
 
 const addStudent = async (req, res) => {
   const { first_name, last_name, mobile, email, dob, address } = req.body;
@@ -67,18 +20,20 @@ const addStudent = async (req, res) => {
   }
 
   try {
-    // Check if a student with the same email or mobile already exists
-    const existingStudent = await Student.findOne({
-      $or: [{ email }, { mobile }],
-    });
+    // Check if a student with the same email already exists
+    const existingStudent = await Student.findOne({ email });
     if (existingStudent) {
       return res.status(409).json({
-        message: "A student with this email or mobile number already exists!",
+        message: "A student with this email already exists!",
       });
     }
 
-    // student does not exist
+    // Generate a unique student_id
+    const student_id = uuidv4();
+
+    // Add a new student
     const student = await Student.create({
+      student_id,
       first_name,
       last_name,
       mobile,
@@ -89,7 +44,7 @@ const addStudent = async (req, res) => {
 
     return res.status(201).json({
       message: "Student added successfully!",
-      student: student,
+      student,
     });
   } catch (err) {
     console.log("Error adding student : ", err.message);
@@ -114,10 +69,9 @@ const getAllStudents = async (req, res) => {
     // Return the list of students
     return res.status(200).json({
       message: "Students retrieved successfully!",
-      students: students,
+      students,
     });
   } catch (err) {
-    // Handle errors
     console.error("Error retrieving students:", err.message);
     return res.status(500).json({
       message: "Server error. Please try again later.",
@@ -125,17 +79,18 @@ const getAllStudents = async (req, res) => {
   }
 };
 
-const getStudentByEmail = async (req, res) => {
-  const { email } = req.params;
-
-  if (!email) {
+const getStudentById = async (req, res) => {
+  const { student_id } = req.params;
+  // console.log(student_id)
+  if (!student_id) {
     return res
       .status(400)
-      .json({ message: "Email is required to fetch student data." });
+      .json({ message: "Student ID is required to fetch student data." });
   }
 
   try {
-    const student = await Student.findOne({ email });
+    // Ensure `student_id` is treated as a number if stored as such
+    const student = await Student.findOne({ student_id });
 
     if (!student) {
       return res.status(404).json({ message: "Student not found." });
@@ -146,32 +101,29 @@ const getStudentByEmail = async (req, res) => {
       student,
     });
   } catch (err) {
-    console.log("Error retrieving student by email:", err.message);
+    console.log("Error retrieving student by ID:", err.message);
     res.status(500).json({ message: "Server error. Please try again later." });
   }
 };
 
-const updateStudentByEmail = async (req, res) => {
-  const { email } = req.params; // Extract email from the URL
-  const { first_name, last_name, mobile, dob, address } = req.body; // Extract data to update
 
-  if (!email || !first_name || !last_name || !mobile || !dob || !address) {
-    return res
-      .status(400)
-      .json({ message: "All fields are required to update the student." });
+const updateStudentById = async (req, res) => {
+  const { student_id } = req.params; // Extract ID from the URL
+  const updates = req.body; // Extract only the fields the user wants to update
+
+  if (!student_id) {
+    return res.status(400).json({ message: "Student_ID is required to update the student." });
   }
 
   try {
     const student = await Student.findOneAndUpdate(
-      { email }, // Find the student by their unique email
-      { first_name, last_name, mobile, dob, address }, // Data to update
+      {student_id}, // Find the student by their unique ID
+      { $set: updates }, // Update only the fields provided in the request body
       { new: true } // Return the updated student
     );
 
     if (!student) {
-      return res
-        .status(404)
-        .json({ message: "Student not found with this email." });
+      return res.status(404).json({ message: "Student not found with this Student_ID." });
     }
 
     res.status(200).json({
@@ -184,25 +136,22 @@ const updateStudentByEmail = async (req, res) => {
   }
 };
 
-const deleteStudentByEmail = async (req, res) => {
-  const { email } = req.params;
-  if (!email) {
+const deleteStudentById = async (req, res) => {
+  const { student_id } = req.params;
+  if (!student_id) {
     return res
       .status(400)
-      .json({
-        message: "Email is required to delete the student from the database",
-      });
+      .json({ message: "Student_ID is required to delete the student." });
   }
 
-  // search for stuent
   try {
-    const student = await Student.findOneAndDelete({ email });
+    const student = await Student.findOneAndDelete({student_id});
     if (!student) {
       return res
         .status(404)
-        .json({ message: "Student not found with this email id." });
+        .json({ message: "Student not found with this Student_ID." });
     }
-    // if student found and deleted then send response
+
     res.status(200).json({ message: "Student deleted successfully!" });
   } catch (err) {
     console.log("Error deleting student : ", err.message);
@@ -210,4 +159,10 @@ const deleteStudentByEmail = async (req, res) => {
   }
 };
 
-export { addStudent, getAllStudents, getStudentByEmail, updateStudentByEmail, deleteStudentByEmail };
+export {
+  addStudent,
+  getAllStudents,
+  getStudentById,
+  updateStudentById,
+  deleteStudentById,
+};
