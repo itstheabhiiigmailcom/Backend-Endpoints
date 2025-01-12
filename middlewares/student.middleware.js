@@ -7,6 +7,8 @@ const pinCodeRegex = /^[0-9]{6,}$/; // At least 6 digits
 const streetRegex = /^[a-z ]+$/; // Lowercase letters and spaces only
 const buildingRegex = /^[a-zA-Z0-9 ]+$/; // Alphanumeric and spaces only
 const dobRegex = /^([0-2][0-9]|3[0-1])\/(0[1-9]|1[0-2])\/\d{4}$/; // dd/mm/yyyy format
+const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/; // Minimum 8 characters, at least 1 uppercase, 1 lowercase, 1 number, and 1 special character
+
 
 export const validateStudent = (req, res, next) => {
   const studentSchema = Joi.object({
@@ -76,6 +78,15 @@ export const validateStudent = (req, res, next) => {
         "string.pattern.base": "DOB must be in the format dd/mm/yyyy.",
         "date.invalid": "DOB must be a valid date.",
         "date.tooYoung": "Student must be at least 15 years old.",
+      }),
+    
+    password: Joi.string()
+      .required()
+      .trim()
+      .pattern(passwordRegex)
+      .messages({
+        "string.empty": "password is required.",
+        "string.pattern.base": "Password must be at least 8 characters long, contain at least 1 uppercase letter, 1 lowercase letter, 1 number, and 1 special character.",
       }),
 
     address: Joi.object({

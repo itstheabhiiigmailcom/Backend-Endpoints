@@ -2,7 +2,7 @@ import { Student } from "../models/student.model.js";
 import { v4 as uuidv4 } from "uuid";
 
 const addStudent = async (req, res) => {
-  const { first_name, last_name, mobile, email, dob, address } = req.body;
+  const { first_name, last_name, mobile, email, dob, password, address } = req.body;
 
   // Validate that all fields are present and not empty
   if (
@@ -11,6 +11,7 @@ const addStudent = async (req, res) => {
     !mobile ||
     !email?.trim() ||
     !dob?.trim() ||
+    !password?.trim()||
     !address ||
     !address.building?.trim() ||
     !address.street?.trim() ||
@@ -39,6 +40,7 @@ const addStudent = async (req, res) => {
       mobile,
       email,
       dob,
+      password,
       address,
     });
 

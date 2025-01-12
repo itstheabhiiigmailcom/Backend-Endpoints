@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import bcrypt from 'bcrypt';
 
 const addressSchema = new mongoose.Schema(
     {
@@ -49,12 +50,27 @@ const studentSchema = new mongoose.Schema(
             required: true,
             trim: true
         },
+        password: {
+            type: String,
+            required: true,
+            trim: true,
+        },
         address: {
             type: addressSchema,
             required: true,
         }
     }
 )
+
+studentSchema.pre("save", async function (next) {
+    if(!this.isModified("password")) return next();         // skip hashing if password hasn't changed
+    this.password = await bcrypt.hash(this.password, 10);   // hash the password with salt of 10
+    next(); 
+})
+
+studentSchema.methods.isPasswordCorrect = async function (password) {
+    return await bcrypt.compare(password, this.password);
+}
 
 const Student = mongoose.model("Student", studentSchema);
 
