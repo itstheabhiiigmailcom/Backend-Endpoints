@@ -1,3 +1,4 @@
+// validates the data provided by user
 import Joi from "joi";
 import { validateDOB, validatePhoneNumber } from '../utilities/validation.utility.js'
 

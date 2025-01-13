@@ -1,6 +1,8 @@
 import { Router } from "express";
 import { addStudent, deleteStudentById, getAllStudents, getStudentById, updateStudentById } from "../controllers/student.controller.js";
 import { validateStudent } from "../middlewares/student.middleware.js";
+import { login, refreshTheToken } from '../controllers/auth.controller.js';
+import { authenticate } from '../middlewares/auth.middleware.js';
 
 const appRouter = Router();
 
@@ -23,11 +25,16 @@ const appRouter = Router();
 //     }
 // })
 
+
+appRouter.post("/login", login);
+appRouter.post("/refresh", refreshTheToken);
+
+// secure Routes
 // CRUD operations
-appRouter.post('/student', validateStudent, addStudent);     // create and validate before add
-appRouter.get('/student',  getAllStudents);      // read all
-appRouter.get('/student/:student_id', getStudentById);    // read
-appRouter.put('/student/:student_id', updateStudentById);     // update
-appRouter.delete('/student/:student_id', deleteStudentById);  // delete
+appRouter.post('/student', authenticate, validateStudent, addStudent);     // create and validate before add
+appRouter.get('/student', authenticate ,getAllStudents);      // read all
+appRouter.get('/student/:student_id', authenticate, getStudentById);    // read
+appRouter.put('/student/:student_id', authenticate, updateStudentById);     // update
+appRouter.delete('/student/:student_id', authenticate, deleteStudentById);  // delete
 
 export default appRouter;
