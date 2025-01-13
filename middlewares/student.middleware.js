@@ -1,8 +1,8 @@
 import Joi from "joi";
+import { validateDOB, validatePhoneNumber } from '../utilities/validation.utility.js'
 
 // Predefined regular expressions
 const nameRegex = /^[a-zA-Z]+$/; // Letters only
-const mobileRegex = /^[0-9]{10}$/; // 10 digits only
 const pinCodeRegex = /^[0-9]{6,}$/; // At least 6 digits
 const streetRegex = /^[a-z ]+$/; // Lowercase letters and spaces only
 const buildingRegex = /^[a-zA-Z0-9 ]+$/; // Alphanumeric and spaces only
@@ -31,12 +31,12 @@ export const validateStudent = (req, res, next) => {
       }),
 
     mobile: Joi.string()
-      .required()
-      .pattern(mobileRegex)
-      .messages({
-        "string.empty": "Mobile number is required.",
-        "string.pattern.base": "Mobile number must be exactly 10 digits.",
-      }),
+    .required()
+    .custom(validatePhoneNumber)
+    .messages({
+      "string.empty": "Mobile number is required.",
+      "string.pattern.base": "Mobile number must be valid and include a country code.",
+    }),
 
     email: Joi.string()
       .trim()
@@ -51,28 +51,7 @@ export const validateStudent = (req, res, next) => {
     dob: Joi.string()
       .required()
       .pattern(dobRegex)
-      .custom((value, helpers) => {
-        const [day, month, year] = value.split("/").map(Number);
-        const parsedDate = new Date(year, month - 1, day);
-
-        // Check if the parsed date is valid
-        if (
-          parsedDate.getFullYear() !== year ||
-          parsedDate.getMonth() + 1 !== month ||
-          parsedDate.getDate() !== day
-        ) {
-          return helpers.error("date.invalid");
-        }
-
-        // Ensure the date is at least 15 years old
-        const minAgeDate = new Date();
-        minAgeDate.setFullYear(minAgeDate.getFullYear() - 15);
-        if (parsedDate > minAgeDate) {
-          return helpers.error("date.tooYoung");
-        }
-
-        return value;
-      })
+      .custom(validateDOB) // Call the custom DOB validation function
       .messages({
         "string.empty": "DOB is required.",
         "string.pattern.base": "DOB must be in the format dd/mm/yyyy.",

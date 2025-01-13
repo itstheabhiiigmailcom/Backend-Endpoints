@@ -12,11 +12,7 @@ app.use(cors({
     credentials: true
 }));
 app.use(express.json());
-app.use(appRouter)
-
-// app.listen(5000, ()=> {
-//     console.log("server is listening on port 5000");
-// })
+app.use("/api/v1",appRouter);
 
 connectDB().then(() => {
     app.listen(process.env.PORT, () => {

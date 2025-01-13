@@ -23,7 +23,6 @@ const appRouter = Router();
 //     }
 // })
 
-
 // CRUD operations
 appRouter.post('/student', validateStudent, addStudent);     // create and validate before add
 appRouter.get('/student',  getAllStudents);      // read all
