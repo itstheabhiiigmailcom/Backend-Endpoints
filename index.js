@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import appRouter from './routes/student.js';
 import dotenv from 'dotenv';
+import cookieParser from 'cookie-parser';
 import connectDB from './db/index.js';
 
 dotenv.config();
@@ -12,6 +13,7 @@ app.use(cors({
     credentials: true
 }));
 app.use(express.json());
+app.use(cookieParser());
 app.use("/api/v1",appRouter);
 
 connectDB().then(() => {
