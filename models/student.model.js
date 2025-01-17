@@ -21,6 +21,11 @@ const studentSchema = new mongoose.Schema({
     required: true,
     unique: true,
   },
+  roll_no: {
+    type: String,
+    required: true,
+    unique: true,
+  },
   first_name: {
     type: String,
     required: true,
@@ -43,9 +48,8 @@ const studentSchema = new mongoose.Schema({
     trim: true,
   },
   dob: {
-    type: String,
+    type: Date,
     required: true,
-    trim: true,
   },
   password: {
     type: String,

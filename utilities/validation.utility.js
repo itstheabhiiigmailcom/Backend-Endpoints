@@ -11,27 +11,27 @@ const validatePhoneNumber = (value, helpers) => {
 }
 
 const validateDOB = (value, helpers) => {
-  // Split the input value into day, month, and year
+  // Manually parse the date string
   const [day, month, year] = value.split("/").map(Number);
-  const parsedDate = new Date(year, month - 1, day);      // 30-1-2024  ---> 01-2-2024
+  const parsedDate = new Date(year, month - 1, day); // Months are zero-based in JavaScript
 
-  // Check if the parsed date is valid
-  if (
-    parsedDate.getFullYear() !== year ||
-    parsedDate.getMonth() + 1 !== month ||
-    parsedDate.getDate() !== day
-  ) {
+  // Validate the parsed date
+  if (parsedDate.getFullYear() !== year || parsedDate.getMonth() + 1 !== month || parsedDate.getDate() !== day) {
     return helpers.error("date.invalid");
   }
 
-  // Ensure the date is at least 15 years old
+  // Ensure the user is at least 15 years old
   const minAgeDate = new Date();
   minAgeDate.setFullYear(minAgeDate.getFullYear() - 15);
   if (parsedDate > minAgeDate) {
     return helpers.error("date.tooYoung");
   }
 
-  return value;
+  // Return the Date object instead of a formatted string
+  return parsedDate;
 };
+
+
+
 
 export { validateDOB, validatePhoneNumber }

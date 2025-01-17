@@ -2,16 +2,16 @@ import Student from "../models/student.model.js";
 import { v4 as uuidv4 } from "uuid";
 
 const addStudent = async (req, res) => {
-  const { first_name, last_name, mobile, email, dob, password, address } =
+  const { first_name, last_name, roll_no, mobile, email, dob, password, address } =
     req.body;
-
   // Validate that all fields are present and not empty
   if (
     !first_name?.trim() ||
     !last_name?.trim() ||
+    !roll_no?.trim() ||
     !mobile ||
     !email?.trim() ||
-    !dob?.trim() ||
+    !dob ||
     !password?.trim() ||
     !address ||
     !address.building?.trim() ||
@@ -57,6 +57,14 @@ const addStudent = async (req, res) => {
       });
     }
 
+    // Business Validation 5: check if roll_no already exists
+    const existingRollStudent = await Student.findOne({ roll_no });
+    if (existingRollStudent) {
+      return res.status(409).json({
+        message: "A student with same roll no already exist!",
+      });
+    }
+
     // Generate a unique student_id
     const student_id = uuidv4();
 
@@ -65,6 +73,7 @@ const addStudent = async (req, res) => {
       student_id,
       first_name,
       last_name,
+      roll_no,
       mobile,
       email,
       dob,
@@ -86,8 +95,19 @@ const addStudent = async (req, res) => {
 
 const getAllStudents = async (req, res) => {
   try {
-    // Fetch all students from the database
-    const students = await Student.find();
+    // Extract page and limit from query parameters, with default values
+    const { page = 1, limit = 10 } = req.query;
+
+    // Calculate the number of documents to skip
+    const skip = (page - 1) * limit;
+
+    // Fetch students with pagination
+    const students = await Student.find()
+      .skip(skip) // Skip records
+      .limit(Number(limit)); // Limit the number of records
+
+    // Get the total count of students in the database
+    const totalCount = await Student.countDocuments();
 
     // Check if there are no students in the database
     if (students.length === 0) {
@@ -96,10 +116,16 @@ const getAllStudents = async (req, res) => {
       });
     }
 
-    // Return the list of students
+    // Return the paginated list of students with metadata
     return res.status(200).json({
       message: "Students retrieved successfully!",
       students,
+      pagination: {
+        currentPage: Number(page),
+        totalPages: Math.ceil(totalCount / limit),
+        totalStudents: totalCount,
+        pageSize: Number(limit),
+      },
     });
   } catch (err) {
     console.error("Error retrieving students:", err.message);
@@ -108,6 +134,7 @@ const getAllStudents = async (req, res) => {
     });
   }
 };
+
 
 const getStudentById = async (req, res) => {
   const { student_id } = req.params;
@@ -149,7 +176,6 @@ const updateStudentById = async (req, res) => {
   try {
     // Before updating check business requirement again 
 
-    // **Business Validation Checks:**
     // Check if the email is being updated and already exists for another student
     if (updates.email) {
       const emailExists = await Student.findOne({
@@ -237,10 +263,89 @@ const deleteStudentById = async (req, res) => {
   }
 };
 
+const searchStudent = async (req, res) => {
+  const { key_name, key_value, key_type } = req.body;
+
+  // Validate input
+  if (!key_name || !key_value || !key_type) {
+    return res.status(400).json({ message: 'key_name, key_value, and key_type are required.' });
+  }
+
+  // Initialize the query object
+  let query = {};
+
+  // Construct the query based on key_type
+  switch (key_type) {
+    case 'exact_text':
+      // For exact text match
+      query[key_name] = key_value;
+      break;
+    case 'text_contains':
+      // For partial text match (case-insensitive)
+      query[key_name] = { $regex: key_value, $options: 'i' };
+      break;
+    case 'text_starts_with':
+      // For text starting with key_value
+      query[key_name] = { $regex: `^${key_value}`, $options: 'i' };
+      break;
+    case 'text_ends_with':
+      // For text ending with key_value
+      query[key_name] = { $regex: `${key_value}$`, $options: 'i' };
+      break;
+    case 'exact_number':
+      // For exact number match
+      query[key_name] = Number(key_value);
+      break;
+    case 'number_greater_than':
+      // For numbers greater than key_value
+      query[key_name] = { $gt: Number(key_value) };
+      break;
+    case 'number_less_than':
+      // For numbers less than key_value
+      query[key_name] = { $lt: Number(key_value) };
+      break;
+    case 'exact_date':
+      // For exact date match
+      const [d1, m1, y1] = key_value.split('/');
+      const exactDate = new Date(`${y1}-${m1}-${d1}`);
+      query[key_name] = new Date(exactDate);
+      break;
+    case 'date_before':
+      // For dates before key_value
+      const [day, month, year] = key_value.split('/');
+      const dateBefore = new Date(`${year}-${month}-${day}`);
+      query[key_name] = { $lt: dateBefore };
+      break;
+    case 'date_after':
+      // For dates after key_value
+      const [d, m, y] = key_value.split('/');
+      const dateAfter = new Date(`${y}-${m}-${d}`);
+      query[key_name] = { $gt: new Date(dateAfter) };
+      break;
+    case 'in_list':
+      // For matching values in a list
+      const valueList = key_value.split(',').map(value => value.trim()); // Split and trim the list of values
+      query[key_name] = { $in: valueList };
+      break;
+    default:
+      return res.status(400).json({ message: 'Invalid key_type provided.' });
+  }
+
+  try {
+    // Execute the query using Mongoose
+    const results = await Student.find(query);
+    res.status(200).json(results);
+  } catch (error) {
+    console.error('Error executing search:', error);
+    res.status(500).json({ message: 'Server error. Please try again later.' });
+  }
+};
+
 export {
   addStudent,
   getAllStudents,
   getStudentById,
   updateStudentById,
   deleteStudentById,
+  searchStudent,
 };

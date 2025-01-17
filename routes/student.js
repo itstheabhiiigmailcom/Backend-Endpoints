@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { addStudent, deleteStudentById, getAllStudents, getStudentById, updateStudentById } from "../controllers/student.controller.js";
+import { addStudent, deleteStudentById, getAllStudents, getStudentById, searchStudent, updateStudentById } from "../controllers/student.controller.js";
 import { validateStudent } from "../middlewares/studentDataValidation.middleware.js";
 import { login, refreshTheToken } from '../controllers/auth.controller.js';
 import { authenticate } from '../middlewares/auth.middleware.js';
@@ -36,5 +36,7 @@ appRouter.get('/student', authenticate ,getAllStudents);      // read all
 appRouter.get('/student/:student_id', authenticate, getStudentById);    // read
 appRouter.put('/student/:student_id', authenticate, validateStudent(true), updateStudentById);     // update
 appRouter.delete('/student/:student_id', authenticate, deleteStudentById);  // delete
+
+appRouter.post('/search', authenticate, searchStudent)
 
 export default appRouter;
