@@ -1,3 +1,4 @@
+import { uploadToS3 } from "../middlewares/aws_s3.js";
 import Student from "../models/student.model.js";
 import { v4 as uuidv4 } from "uuid";
 
@@ -341,6 +342,30 @@ const searchStudent = async (req, res) => {
   }
 };
 
+const uploadFile = async (req, res) => {
+  try {
+    const file = req.file;
+
+    if (!file) {
+      return res.status(400).json({ message: "No file uploaded." });
+    }
+
+    // Upload file to S3
+    const uploadResult = await uploadToS3(file);
+
+    return res.status(200).json({
+      message: "File uploaded successfully!",
+      fileUrl: uploadResult.Location, // S3 file URL
+    });
+  } catch (err) {
+    console.error("Error uploading file:", err.message);
+    return res.status(500).json({
+      message: "Failed to upload file.",
+      error: err.message,
+    });
+  }
+};
+
 export {
   addStudent,
   getAllStudents,
@@ -348,4 +373,5 @@ export {
   updateStudentById,
   deleteStudentById,
   searchStudent,
+  uploadFile,
 };

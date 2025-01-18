@@ -13,7 +13,7 @@ const nameRegex = /^[a-zA-Z]+$/; // Letters only
 const pinCodeRegex = /^[0-9]{6,}$/; // At least 6 digits
 const streetRegex = /^[a-z ]+$/; // Lowercase letters and spaces only
 const buildingRegex = /^[a-zA-Z0-9 ]+$/; // Alphanumeric and spaces only
-const dobRegex = /^\d{2}-\d{2}-\d{4}$/; // Validate yy-mm-dd format
+const dobRegex = /^([0-2][0-9]|3[0-1])\/(0[1-9]|1[0-2])\/\d{4}$/; // Validate yy-mm-dd format
 const passwordRegex =
   /^(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/; // Minimum 8 characters, at least 1 uppercase, 1 lowercase, 1 number, and 1 special character
 
@@ -91,7 +91,7 @@ export const validateStudent = (isUpdate = false) => {
         }),
 
       dob: Joi.string()
-        .pattern(/^([0-2][0-9]|3[0-1])\/(0[1-9]|1[0-2])\/\d{4}$/)  // Validate both yy-mm-dd and yyyy-mm-dd formats
+        .pattern(dobRegex)  // Validate both yy-mm-dd and yyyy-mm-dd formats
         .custom(validateDOB) // Use the external validateDOB function
         .when(Joi.ref("$isUpdate"), {
           is: true,

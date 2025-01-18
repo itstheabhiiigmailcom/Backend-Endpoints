@@ -1,8 +1,9 @@
 import { Router } from "express";
-import { addStudent, deleteStudentById, getAllStudents, getStudentById, searchStudent, updateStudentById } from "../controllers/student.controller.js";
+import { addStudent, deleteStudentById, getAllStudents, getStudentById, searchStudent, updateStudentById, uploadFile } from "../controllers/student.controller.js";
 import { validateStudent } from "../middlewares/studentDataValidation.middleware.js";
 import { login, refreshTheToken } from '../controllers/auth.controller.js';
 import { authenticate } from '../middlewares/auth.middleware.js';
+import upload from "../middlewares/multer.js";
 
 const appRouter = Router();
 
@@ -38,5 +39,6 @@ appRouter.put('/student/:student_id', authenticate, validateStudent(true), updat
 appRouter.delete('/student/:student_id', authenticate, deleteStudentById);  // delete
 
 appRouter.post('/search', authenticate, searchStudent)
+appRouter.post('/upload', upload.single("file"), uploadFile);
 
 export default appRouter;
