@@ -13,10 +13,10 @@ app.use(cors({
     credentials: true
 }));
 app.use(express.json());
-app.use(cookieParser());
-app.use("/api/v1",appRouter);
 // Middleware to parse incoming requests with URL-encoded payloads
 app.use(express.urlencoded({ extended: true })); // For URL-encoded bodies
+app.use(cookieParser());
+app.use("/api/v1",appRouter);
 
 connectDB().then(() => {
     app.listen(process.env.PORT, () => {

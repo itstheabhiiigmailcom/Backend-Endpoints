@@ -62,7 +62,7 @@ const studentSchema = new mongoose.Schema({
   },
   profile_photo: {
     type: String,
-    required: true,
+    required: false,
   },
   refreshToken: { type: String }, // Store the latest refresh token
 });

@@ -19,6 +19,18 @@ const passwordRegex =
 
 export const validateStudent = (isUpdate = false) => {
   return (req, res, next) => {
+
+    // Parse address field if it's a stringified JSON object
+    if (req.body.address && typeof req.body.address === 'string') {
+      try {
+        req.body.address = JSON.parse(req.body.address);
+      } catch (error) {
+        return res.status(400).json({
+          message: "Invalid address format. Please provide a valid object.",
+        });
+      }
+    }
+
     const studentSchema = Joi.object({
       first_name: Joi.string()
         .trim()
@@ -166,10 +178,10 @@ export const validateStudent = (isUpdate = false) => {
         otherwise: Joi.required(),
       }),
     });
-
+    
     const { error, value } = studentSchema.validate(req.body, {
       abortEarly: false,
-      context: { isUpdate },
+      context: { isUpdate: isUpdate || false }, // Ensure isUpdate is a boolean
     });
 
     if (error) {

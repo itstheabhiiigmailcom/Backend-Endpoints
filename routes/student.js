@@ -32,13 +32,13 @@ appRouter.post("/refresh", refreshTheToken);
 
 // secure Routes
 // CRUD operations
-appRouter.post('/student', upload.single("file"), addStudent);     // create and validate before add
+appRouter.post('/student', upload.single("file"), authenticate, validateStudent(false) ,addStudent);     // create and validate before add
 appRouter.get('/student', authenticate ,getAllStudents);      // read all
 appRouter.get('/student/:student_id', authenticate, getStudentById);    // read
-appRouter.put('/student/:student_id', authenticate, validateStudent(true), updateStudentById);     // update
+appRouter.put('/student/:student_id', upload.single("file"), authenticate, validateStudent(true), updateStudentById);     // update
 appRouter.delete('/student/:student_id', authenticate, deleteStudentById);  // delete
 
 appRouter.post('/search', authenticate, searchStudent)
 appRouter.post('/upload', upload.single("file"), uploadFile);
-// authenticate, validateStudent(false)
+
 export default appRouter;

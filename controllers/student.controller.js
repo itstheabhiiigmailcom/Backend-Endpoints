@@ -1,15 +1,19 @@
 import { uploadToS3 } from "../middlewares/aws_s3.js";
 import Student from "../models/student.model.js";
 import { v4 as uuidv4 } from "uuid";
+import { deleteFileFromS3 } from "../middlewares/aws_s3.js";
 
 const addStudent = async (req, res) => {
-  const { first_name, last_name, roll_no, mobile, email, dob, password, address } = req.body;
-  let parsedAddress;
-  try {
-    parsedAddress = JSON.parse(address); // Try to parse the address string into an object
-  } catch (err) {
-    return res.status(400).json({ message: "Invalid address format." });
-  }
+  const {
+    first_name,
+    last_name,
+    roll_no,
+    mobile,
+    email,
+    dob,
+    password,
+    address,
+  } = req.body;
   // Validate that all fields are present and not empty
   if (
     !first_name?.trim() ||
@@ -19,38 +23,12 @@ const addStudent = async (req, res) => {
     !email?.trim() ||
     !dob ||
     !password?.trim() ||
-    !parsedAddress ||
-    !parsedAddress.building?.trim() ||
-    !parsedAddress.street?.trim() ||
-    !parsedAddress.pin?.trim()
+    !address ||
+    !address.building?.trim() ||
+    !address.street?.trim() ||
+    !address.pin?.trim()
   ) {
     return res.status(400).json({ message: "All fields are required." });
-  }
-  // Upload image to AWS S3 and save URL in database
-  const file = req.file;
-  if (!file) {
-    return res.status(400).json({ message: "No file uploaded." });
-  }
-  // Get the file path
-  const localFilePath = file.path;
-  if (!localFilePath) {
-    return res.status(409).json({
-      message: "Student profile image is required!",
-    });
-  }
-
-  // Upload file to AWS S3 using the local file path
-  let AWSs3Url;
-  try {
-    const uploadResult = await uploadToS3({
-      filePath: localFilePath,
-      fileName: file.originalname, // Maintain the original file name
-      mimetype: file.mimetype, // Pass the MIME type for content-type headers
-    });
-    AWSs3Url = uploadResult.Location; // S3 URL for the profile photo
-
-  } catch (err) {
-    return res.status(500).json({ message: "Failed to upload image." });
   }
 
   // store into database
@@ -93,6 +71,32 @@ const addStudent = async (req, res) => {
         message: "A student with the same roll no already exists!",
       });
     }
+
+    // Upload image to AWS S3 and save URL in database
+    const file = req.file;
+    if (!file) {
+      return res.status(400).json({ message: "No file uploaded." });
+    }
+    // Get the file path
+    const localFilePath = file.path;
+    if (!localFilePath) {
+      return res.status(409).json({
+        message: "Student profile image is required!",
+      });
+    }
+
+    // Upload file to AWS S3 using the local file path
+    let AWSs3Url;
+    try {
+      const uploadResult = await uploadToS3({
+        filePath: localFilePath,
+        fileName: file.originalname, // Maintain the original file name
+        mimetype: file.mimetype, // Pass the MIME type for content-type headers
+      });
+      AWSs3Url = uploadResult.Location; // S3 URL for the profile photo
+    } catch (err) {
+      return res.status(500).json({ message: "Failed to upload image." });
+    }
     // Generate a unique student_id
     const student_id = uuidv4();
     // Add a new student
@@ -105,7 +109,7 @@ const addStudent = async (req, res) => {
       email,
       dob,
       password,
-      address: parsedAddress, // Use parsedAddress here
+      address, // Use parsedAddress here
       profile_photo: AWSs3Url, // Store the uploaded file's S3 URL in profile_photo
     });
 
@@ -115,10 +119,11 @@ const addStudent = async (req, res) => {
     });
   } catch (err) {
     console.log("Error adding student : ", err.message);
-    return res.status(500).json({ message: "Server error. Please try again later." });
+    return res
+      .status(500)
+      .json({ message: "Server error. Please try again later." });
   }
 };
-
 
 const getAllStudents = async (req, res) => {
   try {
@@ -162,7 +167,6 @@ const getAllStudents = async (req, res) => {
   }
 };
 
-
 const getStudentById = async (req, res) => {
   const { student_id } = req.params;
   // console.log(student_id)
@@ -193,6 +197,7 @@ const getStudentById = async (req, res) => {
 const updateStudentById = async (req, res) => {
   const { student_id } = req.params; // Extract ID from the URL
   const updates = req.body; // Extract only the fields the user wants to update
+  const file = req.file; // Check if there's a new file uploaded
 
   if (!student_id) {
     return res
@@ -201,13 +206,13 @@ const updateStudentById = async (req, res) => {
   }
 
   try {
-    // Before updating check business requirement again 
+    // Before updating check business requirements again 
 
     // Check if the email is being updated and already exists for another student
     if (updates.email) {
       const emailExists = await Student.findOne({
         email: updates.email,
-        student_id: { $ne: student_id }, // Ensure it's not the same which we are updating for
+        student_id: { $ne: student_id }, // Ensure it's not the same student which we are updating for
       });
       if (emailExists) {
         return res
@@ -244,14 +249,51 @@ const updateStudentById = async (req, res) => {
       }
     }
 
+    // Handle the profile photo update (if any)
+    let profile_photo = null;
+    const student = await Student.findOne({ student_id }); // Find the student by ID
 
-    const student = await Student.findOneAndUpdate(
+    if (file) {
+      // If a new file is uploaded, upload it to AWS S3
+      const localFilePath = file.path;
+      if (!localFilePath) {
+        return res.status(409).json({
+          message: "Profile photo is required!",
+        });
+      }
+
+      // Delete the old profile photo from S3 if it exists
+      if (student && student.profile_photo) {
+        await deleteFileFromS3(student.profile_photo); // Delete the old profile photo
+      }
+
+      // Upload new file to AWS S3
+      const uploadResult = await uploadToS3({
+        filePath: localFilePath,
+        fileName: file.originalname,
+        mimetype: file.mimetype,
+      });
+
+      // Get the S3 URL for the uploaded image
+      profile_photo = uploadResult.Location;
+    } else {
+      // If no file is uploaded, retain the old profile photo
+      profile_photo = student.profile_photo;
+    }
+
+    // Update student record
+    const updatedStudent = await Student.findOneAndUpdate(
       { student_id }, // Find the student by their unique ID
-      { $set: updates }, // Update only the fields provided in the request body
+      { 
+        $set: {
+          ...updates,
+          profile_photo: profile_photo || undefined, // Update profile photo if provided, otherwise leave unchanged
+        }
+      }, 
       { new: true } // Return the updated student
     );
 
-    if (!student) {
+    if (!updatedStudent) {
       return res
         .status(404)
         .json({ message: "Student not found with this Student_ID." });
@@ -259,7 +301,7 @@ const updateStudentById = async (req, res) => {
 
     res.status(200).json({
       message: "Student updated successfully!",
-      student,
+      student: updatedStudent,
     });
   } catch (err) {
     console.log("Error updating student:", err.message);
@@ -295,7 +337,9 @@ const searchStudent = async (req, res) => {
 
   // Validate input
   if (!key_name || !key_value || !key_type) {
-    return res.status(400).json({ message: 'key_name, key_value, and key_type are required.' });
+    return res
+      .status(400)
+      .json({ message: "key_name, key_value, and key_type are required." });
   }
 
   // Initialize the query object
@@ -303,59 +347,59 @@ const searchStudent = async (req, res) => {
 
   // Construct the query based on key_type
   switch (key_type) {
-    case 'exact_text':
+    case "exact_text":
       // For exact text match
       query[key_name] = key_value;
       break;
-    case 'text_contains':
+    case "text_contains":
       // For partial text match (case-insensitive)
-      query[key_name] = { $regex: key_value, $options: 'i' };
+      query[key_name] = { $regex: key_value, $options: "i" };
       break;
-    case 'text_starts_with':
+    case "text_starts_with":
       // For text starting with key_value
-      query[key_name] = { $regex: `^${key_value}`, $options: 'i' };
+      query[key_name] = { $regex: `^${key_value}`, $options: "i" };
       break;
-    case 'text_ends_with':
+    case "text_ends_with":
       // For text ending with key_value
-      query[key_name] = { $regex: `${key_value}$`, $options: 'i' };
+      query[key_name] = { $regex: `${key_value}$`, $options: "i" };
       break;
-    case 'exact_number':
+    case "exact_number":
       // For exact number match
       query[key_name] = Number(key_value);
       break;
-    case 'number_greater_than':
+    case "number_greater_than":
       // For numbers greater than key_value
       query[key_name] = { $gt: Number(key_value) };
       break;
-    case 'number_less_than':
+    case "number_less_than":
       // For numbers less than key_value
       query[key_name] = { $lt: Number(key_value) };
       break;
-    case 'exact_date':
+    case "exact_date":
       // For exact date match
-      const [d1, m1, y1] = key_value.split('/');
+      const [d1, m1, y1] = key_value.split("/");
       const exactDate = new Date(`${y1}-${m1}-${d1}`);
       query[key_name] = new Date(exactDate);
       break;
-    case 'date_before':
+    case "date_before":
       // For dates before key_value
-      const [day, month, year] = key_value.split('/');
+      const [day, month, year] = key_value.split("/");
       const dateBefore = new Date(`${year}-${month}-${day}`);
       query[key_name] = { $lt: dateBefore };
       break;
-    case 'date_after':
+    case "date_after":
       // For dates after key_value
-      const [d, m, y] = key_value.split('/');
+      const [d, m, y] = key_value.split("/");
       const dateAfter = new Date(`${y}-${m}-${d}`);
       query[key_name] = { $gt: new Date(dateAfter) };
       break;
-    case 'in_list':
+    case "in_list":
       // For matching values in a list
-      const valueList = key_value.split(',').map(value => value.trim()); // Split and trim the list of values
+      const valueList = key_value.split(",").map((value) => value.trim()); // Split and trim the list of values
       query[key_name] = { $in: valueList };
       break;
     default:
-      return res.status(400).json({ message: 'Invalid key_type provided.' });
+      return res.status(400).json({ message: "Invalid key_type provided." });
   }
 
   try {
@@ -363,8 +407,8 @@ const searchStudent = async (req, res) => {
     const results = await Student.find(query);
     res.status(200).json(results);
   } catch (error) {
-    console.error('Error executing search:', error);
-    res.status(500).json({ message: 'Server error. Please try again later.' });
+    console.error("Error executing search:", error);
+    res.status(500).json({ message: "Server error. Please try again later." });
   }
 };
 
@@ -378,7 +422,7 @@ const uploadFile = async (req, res) => {
 
     // Get the file path
     const localFilePath = file.path;
-    if(!localFilePath) {
+    if (!localFilePath) {
       return res.status(409).json({
         message: "student Profile is required!",
       });

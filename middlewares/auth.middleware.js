@@ -6,7 +6,6 @@ const authenticate = (req, res, next) => {
   const authHeader = req.headers.authorization;
   const accessTokenFromHeader = authHeader && authHeader.startsWith("Bearer ") ? authHeader.split(" ")[1] : null;
   const accessTokenFromCookie = req.cookies.accessToken;
-
   // Choose token from header first, fallback to cookie if header is absent
   const token = accessTokenFromHeader || accessTokenFromCookie;
 

@@ -39,3 +39,21 @@ export const uploadToS3 = async ({ filePath, fileName, mimetype }) => {
     throw err;
   }
 };
+
+export const deleteFileFromS3 = async (fileUrl) => {
+  try {
+    // Extract the file name from the S3 URL
+    const fileName = fileUrl.split("/").slice(-2).join("/"); 
+    // Set up the parameters for the delete operation
+    const params = {
+      Bucket: process.env.AWS_BUCKET_NAME, // Your S3 bucket name
+      Key: fileName, // The file name (or path) in the bucket
+    };
+
+    // Delete the file from S3
+    const response = await s3.deleteObject(params).promise();
+    console.log("Old File deleted from S3:", fileName);
+  } catch (err) {
+    console.error("Error deleting file from S3:", err.message);
+  }
+};
