@@ -3,8 +3,13 @@ import Student from "../models/student.model.js";
 import { v4 as uuidv4 } from "uuid";
 
 const addStudent = async (req, res) => {
-  const { first_name, last_name, roll_no, mobile, email, dob, password, address } =
-    req.body;
+  const { first_name, last_name, roll_no, mobile, email, dob, password, address } = req.body;
+  let parsedAddress;
+  try {
+    parsedAddress = JSON.parse(address); // Try to parse the address string into an object
+  } catch (err) {
+    return res.status(400).json({ message: "Invalid address format." });
+  }
   // Validate that all fields are present and not empty
   if (
     !first_name?.trim() ||
@@ -14,14 +19,41 @@ const addStudent = async (req, res) => {
     !email?.trim() ||
     !dob ||
     !password?.trim() ||
-    !address ||
-    !address.building?.trim() ||
-    !address.street?.trim() ||
-    !address.pin?.trim()
+    !parsedAddress ||
+    !parsedAddress.building?.trim() ||
+    !parsedAddress.street?.trim() ||
+    !parsedAddress.pin?.trim()
   ) {
     return res.status(400).json({ message: "All fields are required." });
   }
+  // Upload image to AWS S3 and save URL in database
+  const file = req.file;
+  if (!file) {
+    return res.status(400).json({ message: "No file uploaded." });
+  }
+  // Get the file path
+  const localFilePath = file.path;
+  if (!localFilePath) {
+    return res.status(409).json({
+      message: "Student profile image is required!",
+    });
+  }
 
+  // Upload file to AWS S3 using the local file path
+  let AWSs3Url;
+  try {
+    const uploadResult = await uploadToS3({
+      filePath: localFilePath,
+      fileName: file.originalname, // Maintain the original file name
+      mimetype: file.mimetype, // Pass the MIME type for content-type headers
+    });
+    AWSs3Url = uploadResult.Location; // S3 URL for the profile photo
+
+  } catch (err) {
+    return res.status(500).json({ message: "Failed to upload image." });
+  }
+
+  // store into database
   try {
     // Business Validation 1: Check if first name and last name are identical
     if (first_name.trim().toLowerCase() === last_name.trim().toLowerCase()) {
@@ -40,7 +72,6 @@ const addStudent = async (req, res) => {
         message: "A student with the same name already exists!",
       });
     }
-
     // Business Validation 3: Check if a student with the same email already exists
     const existingStudent = await Student.findOne({ email });
     if (existingStudent) {
@@ -48,8 +79,6 @@ const addStudent = async (req, res) => {
         message: "A student with this email already exists!",
       });
     }
-
-
     // Business Validation 4: Check if the mobile number is already registered
     const existingMobileStudent = await Student.findOne({ mobile });
     if (existingMobileStudent) {
@@ -57,18 +86,15 @@ const addStudent = async (req, res) => {
         message: "A student with the same mobile number already exists!",
       });
     }
-
-    // Business Validation 5: check if roll_no already exists
+    // Business Validation 5: Check if roll_no already exists
     const existingRollStudent = await Student.findOne({ roll_no });
     if (existingRollStudent) {
       return res.status(409).json({
-        message: "A student with same roll no already exist!",
+        message: "A student with the same roll no already exists!",
       });
     }
-
     // Generate a unique student_id
     const student_id = uuidv4();
-
     // Add a new student
     const student = await Student.create({
       student_id,
@@ -79,7 +105,8 @@ const addStudent = async (req, res) => {
       email,
       dob,
       password,
-      address,
+      address: parsedAddress, // Use parsedAddress here
+      profile_photo: AWSs3Url, // Store the uploaded file's S3 URL in profile_photo
     });
 
     return res.status(201).json({
@@ -88,11 +115,10 @@ const addStudent = async (req, res) => {
     });
   } catch (err) {
     console.log("Error adding student : ", err.message);
-    return res
-      .status(500)
-      .json({ message: "Server error. Please try again later." });
+    return res.status(500).json({ message: "Server error. Please try again later." });
   }
 };
+
 
 const getAllStudents = async (req, res) => {
   try {
@@ -350,9 +376,22 @@ const uploadFile = async (req, res) => {
       return res.status(400).json({ message: "No file uploaded." });
     }
 
-    // Upload file to S3
-    const uploadResult = await uploadToS3(file);
+    // Get the file path
+    const localFilePath = file.path;
+    if(!localFilePath) {
+      return res.status(409).json({
+        message: "student Profile is required!",
+      });
+    }
 
+    // Upload file to AWS S3 using the local file path
+    const uploadResult = await uploadToS3({
+      filePath: localFilePath,
+      fileName: file.originalname, // Maintain the original file name
+      mimetype: file.mimetype, // Pass the MIME type for content-type headers
+    });
+
+    // Return success response
     return res.status(200).json({
       message: "File uploaded successfully!",
       fileUrl: uploadResult.Location, // S3 file URL

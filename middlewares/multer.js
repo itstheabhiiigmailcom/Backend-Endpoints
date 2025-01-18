@@ -1,7 +1,14 @@
-import multer from "multer";
+import multer from 'multer';
 
-// Configure Multer to store files in memory
-const storage = multer.memoryStorage();
-const upload = multer({ storage });
+const storage = multer.diskStorage({
+    destination: function (req, file, cb) {
+      cb(null, "./public/temp")
+    },
+    filename: function (req, file, cb) {
+      cb(null, file.originalname)
+    }
+  })
 
-export default upload;
+//   now this fn will give localfilepath andd now we can give this to cloudinary
+  
+  export const upload = multer({ storage, })

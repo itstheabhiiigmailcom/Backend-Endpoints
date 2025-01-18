@@ -15,6 +15,8 @@ app.use(cors({
 app.use(express.json());
 app.use(cookieParser());
 app.use("/api/v1",appRouter);
+// Middleware to parse incoming requests with URL-encoded payloads
+app.use(express.urlencoded({ extended: true })); // For URL-encoded bodies
 
 connectDB().then(() => {
     app.listen(process.env.PORT, () => {

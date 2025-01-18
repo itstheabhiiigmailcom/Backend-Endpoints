@@ -60,6 +60,10 @@ const studentSchema = new mongoose.Schema({
     type: addressSchema,
     required: true,
   },
+  profile_photo: {
+    type: String,
+    required: true,
+  },
   refreshToken: { type: String }, // Store the latest refresh token
 });
 
