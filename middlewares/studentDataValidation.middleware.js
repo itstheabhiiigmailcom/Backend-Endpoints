@@ -58,23 +58,22 @@ export const validateStudent = (isUpdate = false) => {
           "string.pattern.base": "Last name must only contain alphabets.",
         }),
         // Adding the roll_no field validation
-      roll_no: Joi.string()
-      .trim()
-      .min(2)  // Assuming the roll number is at least 5 characters long
-      .max(5) // Assuming the roll number can be a maximum of 20 characters long
-      .alphanum() // Ensuring it contains only alphanumeric characters
-      .when(Joi.ref("$isUpdate"), {
-        is: true,
-        then: Joi.optional(),
-        otherwise: Joi.required(),
-      })
-      .messages({
-        "string.empty": "Roll number is required.",
-        "string.min": "Roll number must be at least 5 characters long.",
-        "string.max": "Roll number must not exceed 20 characters.",
-        "string.alphanum": "Roll number must be alphanumeric.",
-      }),
-
+        roll_no: Joi.number()
+        .integer() // Ensure it's an integer
+        .min(1) // Minimum roll number
+        .max(99999) // Maximum roll number (adjust based on your requirements)
+        .when(Joi.ref("$isUpdate"), {
+          is: true,
+          then: Joi.optional(),
+          otherwise: Joi.required(),
+        })
+        .messages({
+          "number.base": "Roll number must be a number.",
+          "number.integer": "Roll number must be an integer.",
+          "number.min": "Roll number must be at least 1.",
+          "number.max": "Roll number must not exceed 99999.",
+          "any.required": "Roll number is required.",
+        }),      
       mobile: Joi.string()
         .custom(validatePhoneNumber)
         .when(Joi.ref("$isUpdate"), {

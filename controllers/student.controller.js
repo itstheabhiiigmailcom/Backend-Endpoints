@@ -18,7 +18,7 @@ const addStudent = async (req, res) => {
   if (
     !first_name?.trim() ||
     !last_name?.trim() ||
-    !roll_no?.trim() ||
+    !roll_no ||
     !mobile ||
     !email?.trim() ||
     !dob ||

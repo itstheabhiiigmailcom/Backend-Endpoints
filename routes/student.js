@@ -4,27 +4,9 @@ import { validateStudent } from "../middlewares/studentDataValidation.middleware
 import { login, refreshTheToken } from '../controllers/auth.controller.js';
 import { authenticate } from '../middlewares/auth.middleware.js';
 import { upload } from "../middlewares/multer.js";
+import { getSuggestions, searchItems, searchStudent2 } from "../controllers/search.controller.js";
 
 const appRouter = Router();
-
-// appRouter.post('/add-student', (req, res) => {
-//     const studentData = req.body;
-//     try {
-//         addStudent(studentData);
-//         res.status(201).send({ message: "student data added successfully!" });
-//     } catch(err) {
-//         res.status(500).send({ err: "Error in writing student data" });
-//     }
-// });
-
-// appRouter.get('/get-student', (req, res) => {
-//     try {
-//         const data = getStudent();
-//         res.status(200).json(data);
-//     } catch (err) {
-//         res.status(500).send({ err: "Error in reading the data" });
-//     }
-// })
 
 
 appRouter.post("/login", login);
@@ -39,6 +21,9 @@ appRouter.put('/student/:student_id', upload.single("file"), authenticate, valid
 appRouter.delete('/student/:student_id', authenticate, deleteStudentById);  // delete
 
 appRouter.post('/search', authenticate, searchStudent)
+appRouter.post('/search2', authenticate, searchItems)
 appRouter.post('/upload', upload.single("file"), uploadFile);
+appRouter.post('/search3', searchStudent2);
+appRouter.get('/suggestions', getSuggestions);
 
 export default appRouter;
