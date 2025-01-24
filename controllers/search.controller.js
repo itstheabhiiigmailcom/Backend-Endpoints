@@ -1,5 +1,6 @@
 import qs from "qs";
 import Student from "../models/student.model.js";
+// Improving search technique
 
 const searchItems = async (req, res) => {
   try {
@@ -56,20 +57,35 @@ function convertToMongoQuery(queryParams) {
   return mongoQuery;
 }
 
+
+// For search Engine
+
 const searchStudent2 = async (req, res) => {
-  const { key_value } = req.body;
+  const { key_type, key_value } = req.body;
 
   // Validate input
-  if (!key_value) {
-    return res.status(400).json({ message: "key_value is required." });
+  if (!key_type || !key_value) {
+    return res
+      .status(400)
+      .json({ message: "Both key_type and key_value are required." });
   }
 
   try {
-    // Search for records where first_name contains key_value (case-insensitive)
-    const results = await Student.find({
-      first_name: { $regex: key_value, $options: "i" },
-    });
+    // Utility function to escape regex-sensitive characters
+    const escapeRegex = (string) => string.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
+    // Escape the input key_value to handle special characters
+    const sanitizedValue = escapeRegex(key_value);
+
+    // Dynamically build the search query based on key_type and sanitizedValue
+    const query = {
+      [key_type]: { $regex: sanitizedValue, $options: "i" }, // Case-insensitive partial match
+    };
+
+    // Search in the database
+    const results = await Student.find(query);
+
+    // Return results
     res.status(200).json(results);
   } catch (error) {
     console.error("Error executing search:", error);
@@ -79,33 +95,30 @@ const searchStudent2 = async (req, res) => {
 
 
 const getSuggestions = async (req, res) => {
-  const { query } = req.query;
+  const { key_type, query } = req.query;
 
   // Validate input
-  if (!query) {
-    return res.status(400).json({ message: "Query parameter is required." });
+  if (!key_type || !query) {
+    return res
+      .status(400)
+      .json({ message: "Both key_type and query parameters are required." });
   }
 
-  // Define fields to search (adjust based on your schema)
-  const searchableFields = ["first_name"];
-
-  // Build the $or query for suggestions to match anywhere in the string
-  const suggestionQuery = searchableFields.map((field) => ({
-    [field]: { $regex: query, $options: "i" }, // Removed ^ to allow matching anywhere in the string
-  }));
-
   try {
-    // Execute the query using Mongoose
-    const suggestions = await Student.find({ $or: suggestionQuery }).select(
-      searchableFields.join(" ")
-    );
-    console.log("suggestions:", suggestions);
+    // Dynamically build the suggestion query based on key_type and query
+    const suggestionQuery = {
+      [key_type]: { $regex: query, $options: "i" }, // Case-insensitive partial match
+    };
+    // Fetch suggestions from the database
+    const suggestions = await Student.find(suggestionQuery).select(key_type);
+
     res.status(200).json(suggestions);
   } catch (error) {
     console.error("Error fetching suggestions:", error);
     res.status(500).json({ message: "Server error. Please try again later." });
   }
 };
+
 
 
 

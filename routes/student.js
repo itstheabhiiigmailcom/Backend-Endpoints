@@ -21,8 +21,11 @@ appRouter.put('/student/:student_id', upload.single("file"), authenticate, valid
 appRouter.delete('/student/:student_id', authenticate, deleteStudentById);  // delete
 
 appRouter.post('/search', authenticate, searchStudent)
-appRouter.post('/search2', authenticate, searchItems)
 appRouter.post('/upload', upload.single("file"), uploadFile);
+
+appRouter.post('/search2', authenticate, searchItems)       // query type url searching technique
+
+// Search Engine
 appRouter.post('/search3', searchStudent2);
 appRouter.get('/suggestions', getSuggestions);
 
