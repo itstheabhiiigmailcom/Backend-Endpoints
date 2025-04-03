@@ -13,7 +13,11 @@ app.use(
     origin: [
       'http://localhost:5000',
       'http://127.0.0.1:5500',
+<<<<<<< HEAD
       'https://backend-endpoints-fcs5.onrender.com',
+=======
+      'http://localhost:5173',
+>>>>>>> 28707575a345d2fa211c8476b1c244b072f203e6
     ],
     credentials: true,
   })

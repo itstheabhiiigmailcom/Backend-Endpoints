@@ -1,7 +1,7 @@
-import { uploadToS3 } from "../middlewares/aws_s3.js";
-import Student from "../models/student.model.js";
-import { v4 as uuidv4 } from "uuid";
-import { deleteFileFromS3 } from "../middlewares/aws_s3.js";
+import { uploadToS3 } from '../middlewares/aws_s3.js';
+import Student from '../models/student.model.js';
+import { v4 as uuidv4 } from 'uuid';
+import { deleteFileFromS3 } from '../middlewares/aws_s3.js';
 
 const addStudent = async (req, res) => {
   const {
@@ -28,7 +28,7 @@ const addStudent = async (req, res) => {
     !address.street?.trim() ||
     !address.pin?.trim()
   ) {
-    return res.status(400).json({ message: "All fields are required." });
+    return res.status(400).json({ message: 'All fields are required.' });
   }
 
   // store into database
@@ -36,7 +36,7 @@ const addStudent = async (req, res) => {
     // Business Validation 1: Check if first name and last name are identical
     if (first_name.trim().toLowerCase() === last_name.trim().toLowerCase()) {
       return res.status(400).json({
-        message: "First name and last name cannot be the same.",
+        message: 'First name and last name cannot be the same.',
       });
     }
 
@@ -47,41 +47,41 @@ const addStudent = async (req, res) => {
     });
     if (duplicateNameStudent) {
       return res.status(409).json({
-        message: "A student with the same name already exists!",
+        message: 'A student with the same name already exists!',
       });
     }
     // Business Validation 3: Check if a student with the same email already exists
     const existingStudent = await Student.findOne({ email });
     if (existingStudent) {
       return res.status(409).json({
-        message: "A student with this email already exists!",
+        message: 'A student with this email already exists!',
       });
     }
     // Business Validation 4: Check if the mobile number is already registered
     const existingMobileStudent = await Student.findOne({ mobile });
     if (existingMobileStudent) {
       return res.status(409).json({
-        message: "A student with the same mobile number already exists!",
+        message: 'A student with the same mobile number already exists!',
       });
     }
     // Business Validation 5: Check if roll_no already exists
     const existingRollStudent = await Student.findOne({ roll_no });
     if (existingRollStudent) {
       return res.status(409).json({
-        message: "A student with the same roll no already exists!",
+        message: 'A student with the same roll no already exists!',
       });
     }
 
     // Upload image to AWS S3 and save URL in database
     const file = req.file;
     if (!file) {
-      return res.status(400).json({ message: "No file uploaded." });
+      return res.status(400).json({ message: 'No file uploaded.' });
     }
     // Get the file path
     const localFilePath = file.path;
     if (!localFilePath) {
       return res.status(409).json({
-        message: "Student profile image is required!",
+        message: 'Student profile image is required!',
       });
     }
 
@@ -95,7 +95,7 @@ const addStudent = async (req, res) => {
       });
       AWSs3Url = uploadResult.Location; // S3 URL for the profile photo
     } catch (err) {
-      return res.status(500).json({ message: "Failed to upload image." });
+      return res.status(500).json({ message: 'Failed to upload image.' });
     }
     // Generate a unique student_id
     const student_id = uuidv4();
@@ -114,14 +114,14 @@ const addStudent = async (req, res) => {
     });
 
     return res.status(201).json({
-      message: "Student added successfully!",
+      message: 'Student added successfully!',
       student,
     });
   } catch (err) {
-    console.log("Error adding student : ", err.message);
+    console.log('Error adding student : ', err.message);
     return res
       .status(500)
-      .json({ message: "Server error. Please try again later." });
+      .json({ message: 'Server error. Please try again later.' });
   }
 };
 
@@ -144,13 +144,13 @@ const getAllStudents = async (req, res) => {
     // Check if there are no students in the database
     if (students.length === 0) {
       return res.status(404).json({
-        message: "No students found.",
+        message: 'No students found.',
       });
     }
 
     // Return the paginated list of students with metadata
     return res.status(200).json({
-      message: "Students retrieved successfully!",
+      message: 'Students retrieved successfully!',
       students,
       pagination: {
         currentPage: Number(page),
@@ -160,37 +160,49 @@ const getAllStudents = async (req, res) => {
       },
     });
   } catch (err) {
-    console.error("Error retrieving students:", err.message);
+    console.error('Error retrieving students:', err.message);
     return res.status(500).json({
-      message: "Server error. Please try again later.",
+      message: 'Server error. Please try again later.',
     });
   }
 };
 
 const getStudentById = async (req, res) => {
-  const { student_id } = req.params;
-  // console.log(student_id)
-  if (!student_id) {
+  const { student_id, first_name } = req.params;
+
+  // Ensure either student_id or first_name is provided
+  if (!student_id && !first_name) {
     return res
       .status(400)
-      .json({ message: "Student ID is required to fetch student data." });
+      .json({
+        message:
+          'Either Student ID or First Name is required to fetch student data.',
+      });
   }
 
   try {
-    // Ensure `student_id` is treated as a number if stored as such
-    const student = await Student.findOne({ student_id });
+    let student;
+
+    // Fetch by student_id if it's provided
+    if (student_id) {
+      student = await Student.findOne({ student_id });
+    }
+    // Otherwise, fetch by first_name if it's provided
+    else if (first_name) {
+      student = await Student.findOne({ first_name });
+    }
 
     if (!student) {
-      return res.status(404).json({ message: "Student not found." });
+      return res.status(404).json({ message: 'Student not found.' });
     }
 
     res.status(200).json({
-      message: "Student retrieved successfully!",
+      message: 'Student retrieved successfully!',
       student,
     });
   } catch (err) {
-    console.log("Error retrieving student by ID:", err.message);
-    res.status(500).json({ message: "Server error. Please try again later." });
+    console.log('Error retrieving student:', err.message);
+    res.status(500).json({ message: 'Server error. Please try again later.' });
   }
 };
 
@@ -202,11 +214,11 @@ const updateStudentById = async (req, res) => {
   if (!student_id) {
     return res
       .status(400)
-      .json({ message: "Student_ID is required to update the student." });
+      .json({ message: 'Student_ID is required to update the student.' });
   }
 
   try {
-    // Before updating check business requirements again 
+    // Before updating check business requirements again
 
     // Check if the email is being updated and already exists for another student
     if (updates.email) {
@@ -217,7 +229,7 @@ const updateStudentById = async (req, res) => {
       if (emailExists) {
         return res
           .status(409)
-          .json({ message: "Email is already in use by another student." });
+          .json({ message: 'Email is already in use by another student.' });
       }
     }
 
@@ -229,23 +241,22 @@ const updateStudentById = async (req, res) => {
         student_id: { $ne: student_id }, // Ensure it's not the same student
       });
       if (nameExists) {
-        return res
-          .status(409)
-          .json({
-            message:
-              "A student with the same first and last name already exists.",
-          });
+        return res.status(409).json({
+          message:
+            'A student with the same first and last name already exists.',
+        });
       }
     }
 
     // Check if first_name and last_name are being updated to the same value
     if (updates.first_name && updates.last_name) {
-      if (updates.first_name.trim().toLowerCase() === updates.last_name.trim().toLowerCase()) {
-        return res
-          .status(400)
-          .json({
-            message: "First name and last name cannot be the same.",
-          });
+      if (
+        updates.first_name.trim().toLowerCase() ===
+        updates.last_name.trim().toLowerCase()
+      ) {
+        return res.status(400).json({
+          message: 'First name and last name cannot be the same.',
+        });
       }
     }
 
@@ -258,7 +269,7 @@ const updateStudentById = async (req, res) => {
       const localFilePath = file.path;
       if (!localFilePath) {
         return res.status(409).json({
-          message: "Profile photo is required!",
+          message: 'Profile photo is required!',
         });
       }
 
@@ -284,28 +295,28 @@ const updateStudentById = async (req, res) => {
     // Update student record
     const updatedStudent = await Student.findOneAndUpdate(
       { student_id }, // Find the student by their unique ID
-      { 
+      {
         $set: {
           ...updates,
           profile_photo: profile_photo || undefined, // Update profile photo if provided, otherwise leave unchanged
-        }
-      }, 
+        },
+      },
       { new: true } // Return the updated student
     );
 
     if (!updatedStudent) {
       return res
         .status(404)
-        .json({ message: "Student not found with this Student_ID." });
+        .json({ message: 'Student not found with this Student_ID.' });
     }
 
     res.status(200).json({
-      message: "Student updated successfully!",
+      message: 'Student updated successfully!',
       student: updatedStudent,
     });
   } catch (err) {
-    console.log("Error updating student:", err.message);
-    res.status(500).json({ message: "Server error. Please try again later." });
+    console.log('Error updating student:', err.message);
+    res.status(500).json({ message: 'Server error. Please try again later.' });
   }
 };
 
@@ -314,7 +325,7 @@ const deleteStudentById = async (req, res) => {
   if (!student_id) {
     return res
       .status(400)
-      .json({ message: "Student_ID is required to delete the student." });
+      .json({ message: 'Student_ID is required to delete the student.' });
   }
 
   try {
@@ -322,13 +333,13 @@ const deleteStudentById = async (req, res) => {
     if (!student) {
       return res
         .status(404)
-        .json({ message: "Student not found with this Student_ID." });
+        .json({ message: 'Student not found with this Student_ID.' });
     }
 
-    res.status(200).json({ message: "Student deleted successfully!" });
+    res.status(200).json({ message: 'Student deleted successfully!' });
   } catch (err) {
-    console.log("Error deleting student : ", err.message);
-    res.status(500).json({ message: "Server error. Please try again later." });
+    console.log('Error deleting student : ', err.message);
+    res.status(500).json({ message: 'Server error. Please try again later.' });
   }
 };
 
@@ -339,7 +350,7 @@ const searchStudent = async (req, res) => {
   if (!key_name || !key_value || !key_type) {
     return res
       .status(400)
-      .json({ message: "key_name, key_value, and key_type are required." });
+      .json({ message: 'key_name, key_value, and key_type are required.' });
   }
 
   // Initialize the query object
@@ -347,59 +358,59 @@ const searchStudent = async (req, res) => {
 
   // Construct the query based on key_type
   switch (key_type) {
-    case "exact_text":
+    case 'exact_text':
       // For exact text match
       query[key_name] = key_value;
       break;
-    case "text_contains":
+    case 'text_contains':
       // For partial text match (case-insensitive)
-      query[key_name] = { $regex: key_value, $options: "i" };
+      query[key_name] = { $regex: key_value, $options: 'i' };
       break;
-    case "text_starts_with":
+    case 'text_starts_with':
       // For text starting with key_value
-      query[key_name] = { $regex: `^${key_value}`, $options: "i" };
+      query[key_name] = { $regex: `^${key_value}`, $options: 'i' };
       break;
-    case "text_ends_with":
+    case 'text_ends_with':
       // For text ending with key_value
-      query[key_name] = { $regex: `${key_value}$`, $options: "i" };
+      query[key_name] = { $regex: `${key_value}$`, $options: 'i' };
       break;
-    case "exact_number":
+    case 'exact_number':
       // For exact number match
       query[key_name] = Number(key_value);
       break;
-    case "number_greater_than":
+    case 'number_greater_than':
       // For numbers greater than key_value
       query[key_name] = { $gt: Number(key_value) };
       break;
-    case "number_less_than":
+    case 'number_less_than':
       // For numbers less than key_value
       query[key_name] = { $lt: Number(key_value) };
       break;
-    case "exact_date":
+    case 'exact_date':
       // For exact date match
-      const [d1, m1, y1] = key_value.split("/");
+      const [d1, m1, y1] = key_value.split('/');
       const exactDate = new Date(`${y1}-${m1}-${d1}`);
       query[key_name] = new Date(exactDate);
       break;
-    case "date_before":
+    case 'date_before':
       // For dates before key_value
-      const [day, month, year] = key_value.split("/");
+      const [day, month, year] = key_value.split('/');
       const dateBefore = new Date(`${year}-${month}-${day}`);
       query[key_name] = { $lt: dateBefore };
       break;
-    case "date_after":
+    case 'date_after':
       // For dates after key_value
-      const [d, m, y] = key_value.split("/");
+      const [d, m, y] = key_value.split('/');
       const dateAfter = new Date(`${y}-${m}-${d}`);
       query[key_name] = { $gt: new Date(dateAfter) };
       break;
-    case "in_list":
+    case 'in_list':
       // For matching values in a list
-      const valueList = key_value.split(",").map((value) => value.trim()); // Split and trim the list of values
+      const valueList = key_value.split(',').map((value) => value.trim()); // Split and trim the list of values
       query[key_name] = { $in: valueList };
       break;
     default:
-      return res.status(400).json({ message: "Invalid key_type provided." });
+      return res.status(400).json({ message: 'Invalid key_type provided.' });
   }
 
   try {
@@ -407,8 +418,8 @@ const searchStudent = async (req, res) => {
     const results = await Student.find(query);
     res.status(200).json(results);
   } catch (error) {
-    console.error("Error executing search:", error);
-    res.status(500).json({ message: "Server error. Please try again later." });
+    console.error('Error executing search:', error);
+    res.status(500).json({ message: 'Server error. Please try again later.' });
   }
 };
 
@@ -417,14 +428,14 @@ const uploadFile = async (req, res) => {
     const file = req.file;
 
     if (!file) {
-      return res.status(400).json({ message: "No file uploaded." });
+      return res.status(400).json({ message: 'No file uploaded.' });
     }
 
     // Get the file path
     const localFilePath = file.path;
     if (!localFilePath) {
       return res.status(409).json({
-        message: "student Profile is required!",
+        message: 'student Profile is required!',
       });
     }
 
@@ -437,13 +448,13 @@ const uploadFile = async (req, res) => {
 
     // Return success response
     return res.status(200).json({
-      message: "File uploaded successfully!",
+      message: 'File uploaded successfully!',
       fileUrl: uploadResult.Location, // S3 file URL
     });
   } catch (err) {
-    console.error("Error uploading file:", err.message);
+    console.error('Error uploading file:', err.message);
     return res.status(500).json({
-      message: "Failed to upload file.",
+      message: 'Failed to upload file.',
       error: err.message,
     });
   }

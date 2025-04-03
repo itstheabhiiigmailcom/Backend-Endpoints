@@ -1,5 +1,5 @@
-import mongoose from "mongoose";
-import bcrypt from "bcrypt";
+import mongoose from 'mongoose';
+import bcrypt from 'bcryptjs';
 
 const addressSchema = new mongoose.Schema({
   building: {
@@ -67,8 +67,8 @@ const studentSchema = new mongoose.Schema({
   refreshToken: { type: String }, // Store the latest refresh token
 });
 
-studentSchema.pre("save", async function (next) {
-  if (!this.isModified("password")) return next(); // skip hashing if password hasn't changed
+studentSchema.pre('save', async function (next) {
+  if (!this.isModified('password')) return next(); // skip hashing if password hasn't changed
   this.password = await bcrypt.hash(this.password, 10); // hash the password with salt of 10
   next();
 });
@@ -77,6 +77,6 @@ studentSchema.methods.isPasswordCorrect = async function (password) {
   return await bcrypt.compare(password, this.password);
 };
 
-const Student = mongoose.model("Student", studentSchema);
+const Student = mongoose.model('Student', studentSchema);
 
 export default Student;
